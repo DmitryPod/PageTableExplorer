@@ -1,0 +1,62 @@
+;
+; pte_driver.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = "ActivityMonitor"
+ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
+Provider    = %ManufacturerName%
+CatalogFile = pte_driver.cat
+DriverVer   = 08/08/2025,1.0.0.0
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+pte_driver.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%pte_driver.DeviceDesc% = pte_driver_Device, Root\pte_driver ; TODO: edit hw-id
+
+[pte_driver_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+pte_driver.sys
+
+;-------------- Service installation
+[pte_driver_Device.NT.Services]
+AddService = pte_driver,%SPSVCINST_ASSOCSERVICE%, pte_driver_Service_Inst
+
+; -------------- pte_driver driver install sections
+[pte_driver_Service_Inst]
+DisplayName    = %pte_driver.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\pte_driver.sys
+
+[pte_driver_Device.NT.Wdf]
+KmdfService = pte_driver, pte_driver_wdfsect
+
+[pte_driver_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "DmitryPodvigalkin" ;
+DiskName = "pte_driver Installation Disk"
+pte_driver.DeviceDesc = "pte_driver Device"
+pte_driver.SVCDESC = "pte_driver Service"
