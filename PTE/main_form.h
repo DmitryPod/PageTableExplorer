@@ -2124,7 +2124,7 @@ private: System::Void DgvProcesses_CellContentClick(System::Object^ sender, Syst
 public: System::Void DgvMemory_CellContentClick(System::Object^ sender, System::Windows::Forms::DataGridViewCellEventArgs^ e);
 private: System::Void aboutToolStripMenuItem1_Click(System::Object^ sender, System::EventArgs^ e)
 {
-	System::String^ about = L"         Page Table Explorer v1.0\n\n" \
+	System::String^ about = L"         Page Table Explorer v1.0.0.1\n\n" \
 				            L"             Dmitry Podvigalkin\n\n" \
 				            L"                     2025\n";
 	MessageBox::Show(about);

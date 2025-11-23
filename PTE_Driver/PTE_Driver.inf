@@ -8,7 +8,7 @@ Class       = "ActivityMonitor"
 ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
 Provider    = %ManufacturerName%
 CatalogFile = pte_driver.cat
-DriverVer   = 08/08/2025,1.0.0.0
+DriverVer   = 08/08/2025,1.0.0.1
 PnpLockdown = 1
 
 [DestinationDirs]
