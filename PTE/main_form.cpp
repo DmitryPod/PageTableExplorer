@@ -451,11 +451,6 @@ System::Void PTE::MainForm::DgvMemory_CellContentClick(System::Object^ sender, S
         // Remove spaces and "0x" and convert to a number
         address = System::UInt64::Parse(strAddress->Substring(strAddress->IndexOf("0x") + 2),
             System::Globalization::NumberStyles::HexNumber);
-
-        if (checkBoxAlwaysUnpage->Checked)
-        {
-            PTE::Utils::ForceCurrentPageToPhysicalMemory(address);
-        }
     }
 
     //
@@ -471,8 +466,14 @@ System::Void PTE::MainForm::DgvMemory_CellContentClick(System::Object^ sender, S
     memset(ioctlData, 0, sizeof(IOCTL_DATA));
     
     //
-    // Ask driver to give us the info about the address
-    PTE::Utils::SendIOCTL(static_cast<ULONG>(pid), address, ioctlData);
+    // Ask driver to give us the info about the address checkBoxAlwaysUnpage->Checked
+    bool probe = checkBoxAlwaysUnpage->Checked;
+    if (s_UnpageButtonPressed)
+    {
+        probe = true;
+        s_UnpageButtonPressed = false;
+    }
+    PTE::Utils::SendIOCTL(static_cast<ULONG>(pid), address, ioctlData, probe);
 
     //
     // Update the UI based on the response from driver
@@ -576,8 +577,7 @@ System::Void PTE::MainForm::DataGridViewPT_CellClick(System::Object^ sender, Sys
 /// <param name="sender">Sender info.</param>
 System::Void PTE::MainForm::ButtonUnpage_Click(System::Object^ sender, System::EventArgs^ /*e*/)
 {
-    ForceCurrentPageToPhysicalMemory();
-
+    s_UnpageButtonPressed = true;
     //
     // Trigger cell click again to update the values.
     DataGridViewCellEventArgs^ newEvent = gcnew DataGridViewCellEventArgs(0, dgvMemory->CurrentRow->Index);
@@ -802,11 +802,6 @@ System::Void PTE::MainForm::ForceCurrentPageToPhysicalMemory()
     //
     // Assemble a fake address
     m_customAddress = Utils::AssembleAddresss(ui1, ui2, ui3, ui4);
-
-    //
-    // The address is stored into a class member var. This is an awkward workaround,
-    // since in C++/CLI language it's a pain to pass a variable to event handler.
-    PTE::Utils::ForceCurrentPageToPhysicalMemory(m_customAddress);
 }
 
 /// <summary>

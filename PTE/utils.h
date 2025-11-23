@@ -24,10 +24,9 @@ public:
 	static std::wstring GetCurrDir();
 	static bool IsElevated();
 	static void StopAndDeleteDriver();
-	static void ForceCurrentPageToPhysicalMemory(unsigned long long address);
 	static void Unpage(const HANDLE hProcess, const LPVOID address);
 	static unsigned long InitAndStartDriver();
-	static void SendIOCTL(ULONG pid, ULONGLONG address, IOCTL_DATA* data);
+	static void SendIOCTL(ULONG pid, ULONGLONG address, IOCTL_DATA* data, bool probe);
 	static bool SetDebugPrivilege(const HANDLE hToken);
 	static HANDLE OpenSelectedProcessPrivileged();
 	static unsigned long long AssembleAddresss(const uint64_t ui1, const uint64_t ui2, const uint64_t ui3, const uint64_t ui4);

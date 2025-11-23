@@ -29,17 +29,17 @@ public:
 
 	static void AnalyzeAddress(PVOID address, IOCTL_RESPONSE& data);
 
-	static void GetDataForAddress(ULONG pid, PVOID address, IOCTL_RESPONSE& data);
+	static void GetDataForAddress(ULONG pid, PVOID address, IOCTL_RESPONSE& data, bool probe);
 
 	static bool IsAddressValid(void* address);
 
 private:
 	//
-	// Wrapper for MDL to manage UM-allocated memory
+	// Wrapper for MDL to manage memory
 	class MdlScoped
 	{
 	public:
-		MdlScoped(PIRP irp);
+		MdlScoped(PVOID address, SIZE_T size, LOCK_OPERATION lockType);
 
 		~MdlScoped();
 
@@ -49,7 +49,7 @@ private:
 		}
 
 	private:
-		inline static PMDL m_MDL = nullptr;
+		 PMDL m_MDL = nullptr;
 	};
 };
 

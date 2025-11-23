@@ -110,20 +110,13 @@ NTSTATUS Ioctl::RegisterIoctl(PDRIVER_OBJECT driverObject, PUNICODE_STRING /*reg
 /// <summary>
 /// Constructor for a scoped MDL class.
 /// </summary>
-/// <param name="irp">I/O request packet</param>
-Ioctl::MdlScoped::MdlScoped(PIRP irp)
+/// <param name="address">The address to lock</param>
+/// <param name="size">The size of data to lock</param>
+/// <param name="lockType">Lock type</param>
+Ioctl::MdlScoped::MdlScoped(PVOID address, SIZE_T size, LOCK_OPERATION lockType)
 {
-	if (m_MDL != nullptr)
-	{
-		NT_ASSERT(m_MDL == nullptr);
-		return;
-	}
-
-	//
-	// Lock User Mode memory with MDL in case the UM app goes away
-	// while we're working with the memory
-	m_MDL = IoAllocateMdl(irp->AssociatedIrp.SystemBuffer,
-		sizeof(IOCTL_DATA),
+	m_MDL = IoAllocateMdl(address,
+		static_cast<ULONG>(size),
 		FALSE,
 		FALSE,
 		nullptr);
@@ -133,7 +126,21 @@ Ioctl::MdlScoped::MdlScoped(PIRP irp)
 		return;
 	}
 
-	MmProbeAndLockPages(m_MDL, KernelMode, IoWriteAccess);
+	if (address <= MmHighestUserAddress)
+	{
+		__try
+		{
+			MmProbeAndLockPages(m_MDL, UserMode, lockType);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			DbgPrint("MmProbeAndLockPages failed for address [%p], NTSTATUS=[0x%08X]\n", address, GetExceptionCode());
+		}
+	}
+	else
+	{
+		MmProbeAndLockPages(m_MDL, KernelMode, lockType);
+	}
 }
 
 /// <summary>
@@ -170,7 +177,10 @@ NTSTATUS Ioctl::HandleIOCTL(PDEVICE_OBJECT /*deviceObject*/, PIRP irp)
 		return status;
 	}
 
-	MdlScoped mdl(irp);
+	//
+	// Lock the memory with MDL in case the UM app goes away
+	// while we're working with the memory
+	MdlScoped mdl(irp->AssociatedIrp.SystemBuffer, sizeof(IOCTL_DATA), IoWriteAccess);
 
 	//
 	// Now get the address to work with
@@ -181,7 +191,7 @@ NTSTATUS Ioctl::HandleIOCTL(PDEVICE_OBJECT /*deviceObject*/, PIRP irp)
 	}
 	else
 	{
-		GetDataForAddress(request->pid, request->address, request->response);
+		GetDataForAddress(request->pid, request->address, request->response, request->probe);
 		irp->IoStatus.Information = sizeof(*request);
 		status = STATUS_SUCCESS;
 	}
@@ -216,8 +226,6 @@ void Ioctl::AnalyzeAddress(PVOID address, IOCTL_RESPONSE& data)
 	USHORT b29_21 = static_cast<USHORT>(BYTES_29_21(ullAddress));
 	USHORT b20_12 = static_cast<USHORT>(BYTES_20_12(ullAddress));
 
-	//
-	// Get final physical address
 	data.physAddress = MmGetPhysicalAddress(address);
 
 	//
@@ -393,7 +401,8 @@ void Ioctl::AnalyzeAddress(PVOID address, IOCTL_RESPONSE& data)
 /// <param name="ulPID">Process id</param>
 /// <param name="address">The address of interest</param>
 /// <param name="data">The structure used for the output</param>
-void Ioctl::GetDataForAddress(ULONG ulPID, PVOID address, IOCTL_RESPONSE& data)
+/// <param name="probe">Page in the data</param>
+void Ioctl::GetDataForAddress(ULONG ulPID, PVOID address, IOCTL_RESPONSE& data, bool probe)
 {
 	//
 	// Ignore system processes
@@ -431,8 +440,18 @@ void Ioctl::GetDataForAddress(ULONG ulPID, PVOID address, IOCTL_RESPONSE& data)
 	// We need to be in the context of the process.
 	KAPC_STATE state{ };
 	KeStackAttachProcess(pe, &state);
-
-	AnalyzeAddress(address, data);
+	
+	//
+	// Attemp to page in if requested by user.
+	if (probe)
+	{
+		MdlScoped mdl(address, PAGE_SIZE, IoReadAccess);
+		AnalyzeAddress(address, data);
+	}
+	else
+	{
+		AnalyzeAddress(address, data);
+	}
 
 	KeUnstackDetachProcess(&state);
 

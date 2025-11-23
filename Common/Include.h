@@ -78,5 +78,6 @@ struct IOCTL_DATA
 {
 	ULONG pid;
 	PVOID address;
+	bool probe;
 	IOCTL_RESPONSE response;
 };

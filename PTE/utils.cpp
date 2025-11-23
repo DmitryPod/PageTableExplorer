@@ -135,20 +135,6 @@ void PTE::Utils::Unpage(const HANDLE hProcess, const LPVOID address)
     }
 }
 
-/// <summary>
-/// Unpage memory by reading a single byte from the address.
-/// </summary>
-/// <param name="address">Memory address to unpage</param>
-void PTE::Utils::ForceCurrentPageToPhysicalMemory(unsigned long long address)
-{
-    HANDLE hProcess = PTE::Utils::OpenSelectedProcessPrivileged();
-
-    if (hProcess)
-    {
-        PTE::Utils::Unpage(hProcess, reinterpret_cast<unsigned char*>(address));
-        CloseHandle(hProcess);
-    }
-}
 
 /// <summary>
 /// Try to open the process handle, apply debug privileges if necessary.
@@ -377,12 +363,14 @@ bool PTE::Utils::SetDebugPrivilege(const HANDLE hToken)
 /// <param name="pid">Process id</param>
 /// <param name="address">The memory address we're interested in</param>
 /// <param name="data">The request and the response data</param>
-void PTE::Utils::SendIOCTL(ULONG pid, ULONGLONG address, IOCTL_DATA* data)
+/// <param name="probe">Ask driver to page in the data</param>
+void PTE::Utils::SendIOCTL(ULONG pid, ULONGLONG address, IOCTL_DATA* data, bool probe)
 {
     HANDLE device = INVALID_HANDLE_VALUE;
 
     data->address = std::bit_cast<PVOID>(address);
     data->pid = pid;
+    data->probe = probe;
 
     device = CreateFileW(L"\\\\.\\PTEDeviceLink",
         GENERIC_WRITE | GENERIC_READ | GENERIC_EXECUTE,

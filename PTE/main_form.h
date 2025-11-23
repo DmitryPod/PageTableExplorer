@@ -756,7 +756,7 @@ private:
 		this->buttonUnpage->Name = L"buttonUnpage";
 		this->buttonUnpage->Size = System::Drawing::Size(75, 23);
 		this->buttonUnpage->TabIndex = 50;
-		this->buttonUnpage->Text = L"Unpage";
+		this->buttonUnpage->Text = L"Page In";
 		this->buttonUnpage->UseVisualStyleBackColor = true;
 		this->buttonUnpage->Click += gcnew System::EventHandler(this, &MainForm::ButtonUnpage_Click);
 		// 
@@ -2164,6 +2164,7 @@ public: UInt64 GetCustomAddress()
 };
 
 private: bool s_bAreWeDebugPrivileged{ false };
+private: bool s_UnpageButtonPressed{ false };
 private: UInt64 m_customAddress{ 0 };
 }; //class MainForm
 
